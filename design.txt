@@ -1,0 +1,407 @@
+Agentic AI System for Course Project Evaluation
+and Grading (MVP Design)
+1. Problem Statement
+Professors often manage large numbers of students and course projects, which creates a heavy
+workload for reviewing project ideas, giving iterative feedback, and grading final submissions. This
+becomes especially difficult when each student must be evaluated against the same course description,
+syllabus, and learning outcomes in a fair and consistent manner.
+The goal of this project is to build an autonomous agentic AI system that helps reduce this workload
+by handling three core tasks:
+Proposal evaluation — decide whether a student’s project idea fits the course.
+Milestone feedback — provide feedback on progress submissions during the course.
+Final grading — evaluate the final submission using the course rubric.
+For the MVP, the system should be practical, structured, and reliable rather than overly complex. The
+focus is on building a strong baseline that can later be extended into a multi-agent academic assistant.
+2. MVP Goals
+The MVP should achieve the following:
+Accept course information from the professor:
+course description
+syllabus
+learning outcomes
+grading rubric
+Accept student project proposals.
+Automatically assess whether the proposal is relevant to the course.
+Track milestone submissions for accepted projects.
+Generate useful feedback at each milestone.
+Produce a final grade based on the rubric and full project history.
+Store all outputs for later review by the professor.
+The MVP should not try to solve every possible academic workflow problem. It should be focused,
+modular, and easy to deploy.
+3. Scope of the MVP
+Included in MVP
+Course setup by professor
+Proposal submission by students
+1. 
+2. 
+3. 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+1
+Proposal evaluation with accept/reject decision
+Milestone submission and feedback
+Final submission and grade generation
+Persistent storage of submissions, feedback, and grades
+A simple professor dashboard and student submission interface
+Not included in MVP
+Multi-agent debate system
+Human-in-the-loop grade calibration
+Automated plagiarism detection at production scale
+Viva/oral exam agent
+Full rubric learning from historical data
+Advanced fairness correction and normalization
+These can be added later as advanced features.
+4. High-Level System Overview
+The system can be divided into four major layers:
+4.1 User Interface Layer
+Professor dashboard
+upload syllabus
+define learning outcomes
+define rubric
+view student proposals and grades
+Student portal
+submit project proposal
+submit milestones
+submit final project
+view feedback
+4.2 Backend API Layer
+Receives requests from the frontend
+Validates input
+Writes and reads from databases
+Triggers the LangGraph workflow
+4.3 Agentic Reasoning Layer
+LangGraph manages the workflow
+Each node performs one specific task
+Nodes call an LLM with structured prompts
+Conditional edges decide whether the process continues or stops
+4.4 Storage Layer
+PostgreSQL for structured records
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+2
+Vector database for syllabus and learning outcome retrieval
+Optional object storage for files such as PDFs and project documents
+5. System Architecture
+5.1 Architecture Summary
+                         ┌───────────────────────────────────────┐
+                         │           Frontend (React)             │
+                         │  - Professor Dashboard                │
+                         │  - Student Submission Portal          │
+                         └─────────────────────┬─────────────────┘
+                                               │
+                                               ▼
+                         ┌───────────────────────────────────────┐
+                         │           FastAPI Backend             │
+                         │  - REST APIs                          │
+                         │  - Validation & Auth                  │
+                         │  - Orchestrates workflows             │
+                         └─────────────────────┬─────────────────┘
+                                               │
+                                               ▼
+                    ┌──────────────────────────────────────────────┐
+                    │        LangGraph Agent Orchestrator          │
+                    │                                              │
+                    │  ┌───────────────┐   ┌────────────────────┐  │
+                    │  │ Proposal Flow │   │  Milestone Flow    │  │
+                    │  └──────┬────────┘   └─────────┬──────────┘  │
+                    │         │                      │             │
+                    │         ▼                      ▼             │
+                    │  ┌───────────────┐   ┌────────────────────┐ │
+                    │  │ Evaluation    │   │ Mentor Feedback    │ │
+                    │  │ Node          │   │ Node               │ │
+                    │  └──────┬────────┘   └─────────┬──────────┘ │
+                    │         │                      │            │
+                    │         ▼                      ▼            │
+                    │   ┌───────────────┐   ┌──────────────────┐ │
+                    │   │ Routing Logic │   │ Memory Update     │ │
+                    │   └──────┬────────┘   └─────────┬────────┘ │
+                    │          │                      │           │
+                    │          ▼                      ▼           │
+                    │      ┌──────────────────────────────────┐  │
+                    │      │         Grading Node             │  │
+                    │      └──────────────────────────────────┘  │
+                    └─────────────────────┬──────────────────────┘
+                                          │
+         ┌───────────────────────────────┼───────────────────────────────┐
+         ▼                               ▼                               ▼
+• 
+• 
+3
+┌──────────────────────┐     ┌──────────────────────┐      
+┌──────────────────────┐
+│   Vector Database    │     │    PostgreSQL DB     │      │      LLM 
+API         │
+│ (FAISS / Pinecone)   │     │  (Structured Data)   │      │ (OpenAI / 
+others)    │
+│ - syllabus embeddings│     │ - courses            │      │ - 
+reasoning          │
+│ - learning outcomes  │     │ - students           │      │ - 
+scoring            │
+│ - retrieval context  │     │ - projects           │      │ - 
+feedback           │
+└──────────────────────┘     │ - milestones         │      
+└──────────────────────┘
+                             │ - grades             │
+                             └──────────────────────┘
+This diagram shows the full data and control flow: - The frontend interacts with the FastAPI backend. -
+The backend triggers the LangGraph workflow. - LangGraph orchestrates multiple nodes for evaluation,
+feedback, and grading. - The vector database provides retrieval context (RAG). - PostgreSQL stores all
+persistent state. - The LLM performs reasoning tasks at each node. text Professor / Student UI ↓
+FastAPI   Backend  ↓   LangGraph   Orchestrator
+┌──────────────┬──────────────┐ ↓ ↓ ↓ Vector DB PostgreSQL LLM
+APIs ↓ ↓ ↓ Retrieved Project state Proposal / feedback / grading course info and records generation 
+### 5.2 Core Design Principles
+- **Separation of concerns**: retrieval, reasoning, and storage are separate.
+- **Structured outputs**: every LLM response must follow a schema.
+- **Stateful workflow**: student progress must persist across submissions.
+- **Rubric-based grading**: grading must be based on explicit criteria.
+- **Retrieval-first evaluation**: the agent should use syllabus and learning 
+outcomes as context.
+---
+## 6. Functional Workflow
+### Step 1: Course setup
+The professor uploads:
+- course description
+- syllabus
+- learning outcomes
+- grading rubric
+The system stores these in PostgreSQL and also chunks and indexes the 
+syllabus and outcomes in the vector database.
+### Step 2: Proposal submission
+4
+The student submits a project idea. The system retrieves relevant course 
+context and evaluates whether the idea aligns with the course.
+### Step 3: Proposal decision
+The proposal evaluator returns:
+- scores for relevance, feasibility, and alignment
+- accept/reject decision
+- feedback
+If rejected, the workflow ends with feedback.
+If accepted, the project record is created.
+### Step 4: Milestone submissions
+The student submits milestone updates during the course. The system uses the 
+project history and syllabus context to generate feedback.
+### Step 5: Final submission
+At the end of the course, the student submits the final project. The grading 
+node evaluates the work using the rubric and full submission history.
+### Step 6: Grade storage and review
+The final score, grade, and feedback are saved in the database and can be 
+reviewed by the professor.
+---
+## 7. Low-Level Design
+## 7.1 Data Model
+### Course table
+Stores course-level information.
+Fields:
+- course_id
+- course_name
+- course_description
+- syllabus_text
+- learning_outcomes
+- rubric
+- created_at
+### Student table
+Stores student identity and course association.
+Fields:
+- student_id
+- course_id
+- student_name
+- email
+- created_at
+5
+### Project table
+Stores project lifecycle state.
+Fields:
+- project_id
+- student_id
+- course_id
+- proposal_text
+- proposal_decision
+- proposal_feedback
+- status
+- created_at
+### Milestone table
+Stores repeated submissions and feedback.
+Fields:
+- milestone_id
+- project_id
+- milestone_number
+- submission_text
+- feedback_text
+- created_at
+### Grade table
+Stores final evaluation.
+Fields:
+- grade_id
+- project_id
+- rubric_scores
+- final_grade
+- final_feedback
+- created_at
+---
+## 7.2 State Schema for LangGraph
+The LangGraph state should carry all information required for routing and 
+grading.
+```python
+from typing import TypedDict, List, Dict, Optional
+class ProjectState(TypedDict):
+    course_id: str
+    student_id: str
+    course_description: str
+6
+    syllabus: str
+    learning_outcomes: List[str]
+    rubric: Dict[str, int]
+    proposal: str
+    proposal_scores: Dict[str, float]
+    proposal_decision: str
+    proposal_feedback: str
+    milestones: List[Dict]
+    final_submission: Optional[str]
+    grading_scores: Dict[str, float]
+    final_grade: Optional[str]
+    grading_feedback: str
+    retrieved_context: List[str]
+    history: List[str]
+This state allows the graph to remain aware of the course context, project progress, and final
+evaluation.
+7.3 LangGraph Nodes
+For the MVP, the graph should contain only the nodes required to support the full workflow.
+Node 1:  ingest_course_node
+Purpose: - preprocess and store syllabus, learning outcomes, and rubric - chunk the syllabus text -
+create embeddings for retrieval
+Input: - course description - syllabus - learning outcomes - rubric
+Output: - saved course data - indexed vector representations
+Node 2:  proposal_rag_node
+Purpose: - retrieve the most relevant course content for evaluating a project proposal
+Input: - proposal text - vector database
+Output: - retrieved syllabus and learning outcome context
+Node 3:  proposal_eval_node
+Purpose: - evaluate whether the student proposal fits the course
+7
+Evaluation dimensions: - relevance to course - alignment with learning outcomes - feasibility - technical
+depth
+Output schema:
+{
+"relevance": 0-10,
+"alignment": 0-10,
+"feasibility": 0-10,
+"technical_depth": 0-10,
+"decision": "ACCEPT" or "REJECT",
+"feedback": "..."
+}
+Node 4:  proposal_router
+Purpose: - route the workflow based on the proposal decision
+Logic: - if  ACCEPT  → initialize project memory and move to milestone workflow - if  REJECT  → end
+workflow with feedback
+Node 5:  init_project_memory_node
+Purpose: - create a new project record - initialize milestone history - initialize project state for later
+submissions
+Output: - project state ready for tracking
+Node 6:  milestone_rag_node
+Purpose: - retrieve context for milestone feedback - fetch previous submissions, feedback, syllabus
+context, and learning outcomes
+Output: - relevant context for the mentor node
+Node 7:  mentor_feedback_node
+Purpose: - generate feedback on the submitted milestone - identify missing elements - suggest next
+steps
+Output: - constructive milestone feedback
+8
+Node 8:  update_memory_node
+Purpose: - store the current milestone submission and generated feedback - update the project history
+Output: - updated state with full submission history
+Node 9:  milestone_router_node
+Purpose: - determine whether the workflow should continue or move to final grading
+Logic: - if another milestone is expected → continue feedback loop - if final submission is available →
+proceed to grading
+Node 10:  grading_rag_node
+Purpose: - retrieve rubric and project history before grading
+Output: - rubric-aligned context for scoring
+Node 11:  grading_node
+Purpose: - evaluate the final submission using the rubric - produce category-wise scores - generate final
+grade and feedback
+Output schema:
+{
+"implementation": 0-100,
+"innovation": 0-100,
+"documentation": 0-100,
+"evaluation": 0-100,
+"final_grade": "A/B/C/D/F",
+"feedback": "..."
+}
+Node 12:  end_node
+Purpose: - terminate the graph and return final outputs
+9
+8. LangGraph Flow
+8.1 Proposal Flow
+Course ingestion
+   ↓
+Proposal retrieval
+   ↓
+Proposal evaluation
+   ↓
+Decision router
+   ├── REJECT → End
+   └── ACCEPT → Initialize project memory
+8.2 Milestone Flow
+Initialize project memory
+   ↓
+Milestone retrieval
+   ↓
+Mentor feedback
+   ↓
+Update memory
+   ↓
+Router
+   ├── More milestones → loop back
+   └── Final submission available → grading
+8.3 Final Grading Flow
+Grading retrieval
+   ↓
+Grading node
+   ↓
+End
+9. Example LangGraph Structure
+from langgraph.graph import StateGraph, END
+builder = StateGraph(ProjectState)
+builder.add_node("ingest_course", ingest_course_node)
+builder.add_node("proposal_rag", proposal_rag_node)
+10
