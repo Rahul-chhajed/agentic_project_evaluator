@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import api from '../api';
 import LayoutShell from './LayoutShell';
 
@@ -18,6 +18,8 @@ const StudentDashboard = () => {
   const [proposalForm, setProposalForm] = useState({ course_id: '', title: '', idea_text: '' });
   const [submissionForm, setSubmissionForm] = useState({ milestone: '', progress_notes: '', is_final: false });
   const [selectedFiles, setSelectedFiles] = useState([]);
+
+  const [feedbackModal, setFeedbackModal] = useState(null); // { score, feedback, is_final, evaluated_at }
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -224,7 +226,65 @@ const StudentDashboard = () => {
     }
   };
 
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') setFeedbackModal(null);
+  }, []);
+
+  useEffect(() => {
+    if (feedbackModal) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [feedbackModal, handleKeyDown]);
+
   return (
+    <>
+    {feedbackModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        onClick={() => setFeedbackModal(null)}
+      >
+        <div
+          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+            <div>
+              <p className="text-lg font-bold text-[#292928]">
+                Score: <span className="text-[#c3f832] bg-[#292928] rounded-lg px-2 py-0.5">{feedbackModal.score}</span>
+                {feedbackModal.grade && (
+                  <span className="ml-2 text-base font-semibold text-gray-600">· Grade {feedbackModal.grade}</span>
+                )}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {feedbackModal.is_final ? '🏁 Final Submission' : '📌 Milestone'} · {new Date(feedbackModal.evaluated_at).toLocaleString()}
+              </p>
+            </div>
+            <button
+              onClick={() => setFeedbackModal(null)}
+              className="ml-4 shrink-0 text-gray-400 hover:text-gray-700 transition-colors text-xl leading-none"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+          {/* Body */}
+          <div className="overflow-y-auto px-6 py-4 flex-1">
+            <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{feedbackModal.feedback}</p>
+          </div>
+          {/* Footer */}
+          <div className="px-6 py-3 border-t border-gray-100 flex justify-end">
+            <button
+              onClick={() => setFeedbackModal(null)}
+              className="bg-[#292928] hover:bg-black text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     <LayoutShell
       title="Student Portal"
       subtitle="Join courses, submit your project proposal, upload milestones, and track feedback/grades."
@@ -453,11 +513,19 @@ const StudentDashboard = () => {
               </div>
               <div className="space-y-2">
                 {scores.map((score, idx) => (
-                  <div key={idx} className="border border-gray-200 rounded-lg p-2 bg-white">
-                    <p className="text-xs font-semibold text-[#292928]">Score: {score.score}</p>
-                    <p className="text-xs text-gray-500">{score.is_final ? 'Final' : 'Milestone'} • {new Date(score.evaluated_at).toLocaleString()}</p>
-                    <p className="text-xs text-gray-700 mt-1 line-clamp-3">{score.feedback}</p>
-                  </div>
+                  <button
+                    key={idx}
+                    onClick={() => setFeedbackModal(score)}
+                    className="w-full text-left border border-gray-200 rounded-lg p-2 bg-white hover:border-[#c3f832] hover:bg-[#fbffe6] transition-all group"
+                    title="Click to read full feedback"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold text-[#292928]">Score: {score.score}{score.grade ? ` · Grade ${score.grade}` : ''}</p>
+                      <span className="text-[10px] text-gray-400 group-hover:text-[#292928] transition-colors shrink-0">Read full ↗</span>
+                    </div>
+                    <p className="text-xs text-gray-500">{score.is_final ? '🏁 Final' : '📌 Milestone'} · {new Date(score.evaluated_at).toLocaleString()}</p>
+                    <p className="text-xs text-gray-700 mt-1 line-clamp-2">{score.feedback}</p>
+                  </button>
                 ))}
                 {!scores.length && <p className="text-sm text-gray-500">No scores yet. Select a project and submit milestone/final work to generate scores.</p>}
               </div>
@@ -466,6 +534,7 @@ const StudentDashboard = () => {
         </section>
       </div>
     </LayoutShell>
+    </>
   );
 };
 
